@@ -55,3 +55,7 @@ ENV/
 
 # Pycharm
 .idea/
+
+# PacmanDQN
+saves/
+logs/

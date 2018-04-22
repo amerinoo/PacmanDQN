@@ -245,8 +245,7 @@ class PacmanDQN(game.Agent):
             """ Return matrix with wall coordinates set to 1 """
             width, height = state.data.layout.width, state.data.layout.height
             grid = state.data.layout.walls
-            matrix = np.zeros((height, width))
-            matrix.dtype = int
+            matrix = np.zeros((height, width), dtype=int)
 
             for i in range(grid.height):
                 for j in range(grid.width):
@@ -258,8 +257,7 @@ class PacmanDQN(game.Agent):
         def getPacmanMatrix(state):
             """ Return matrix with pacman coordinates set to 1 """
             width, height = state.data.layout.width, state.data.layout.height
-            matrix = np.zeros((height, width))
-            matrix.dtype = int
+            matrix = np.zeros((height, width), dtype=int)
 
             for agentState in state.data.agentStates:
                 if agentState.isPacman:
@@ -272,8 +270,7 @@ class PacmanDQN(game.Agent):
         def getGhostMatrix(state):
             """ Return matrix with ghost coordinates set to 1 """
             width, height = state.data.layout.width, state.data.layout.height
-            matrix = np.zeros((height, width))
-            matrix.dtype = int
+            matrix = np.zeros((height, width), dtype=int)
 
             for agentState in state.data.agentStates:
                 if not agentState.isPacman:
@@ -287,8 +284,7 @@ class PacmanDQN(game.Agent):
         def getScaredGhostMatrix(state):
             """ Return matrix with ghost coordinates set to 1 """
             width, height = state.data.layout.width, state.data.layout.height
-            matrix = np.zeros((height, width))
-            matrix.dtype = int
+            matrix = np.zeros((height, width), dtype=int)
 
             for agentState in state.data.agentStates:
                 if not agentState.isPacman:
@@ -303,8 +299,7 @@ class PacmanDQN(game.Agent):
             """ Return matrix with food coordinates set to 1 """
             width, height = state.data.layout.width, state.data.layout.height
             grid = state.data.food
-            matrix = np.zeros((height, width))
-            matrix.dtype = int
+            matrix = np.zeros((height, width), dtype=int)
 
             for i in range(grid.height):
                 for j in range(grid.width):
@@ -318,8 +313,7 @@ class PacmanDQN(game.Agent):
             """ Return matrix with capsule coordinates set to 1 """
             width, height = state.data.layout.width, state.data.layout.height
             capsules = state.data.layout.capsules
-            matrix = np.zeros((height, width))
-            matrix.dtype = int
+            matrix = np.zeros((height, width), dtype=int)
 
             for i in capsules:
                 # Insert capsule cells vertically reversed into matrix
