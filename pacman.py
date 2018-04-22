@@ -533,7 +533,7 @@ def readCommand(argv):
     parser.add_option('-l', '--layout', dest='layout',
                       help=default(
                           'the LAYOUT_FILE from which to load the map layout'),
-                      metavar='LAYOUT_FILE', default='mediumGrid')
+                      metavar='LAYOUT_FILE', default='mediumClassic')
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default(
                           'the agent TYPE in the pacmanAgents module to use'),
@@ -559,7 +559,7 @@ def readCommand(argv):
     parser.add_option('-a', '--agentArgs', dest='agentArgs',
                       help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
-                      help=default('How many episodes are training (suppresses output)'), default=5000)
+                      help=default('How many episodes are training (suppresses output)'), default=0)
     parser.add_option('--frameTime', dest='frameTime', type='float',
                       help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
     parser.add_option('-c', '--catchExceptions', action='store_true', dest='catchExceptions',
@@ -691,52 +691,58 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30):
+def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30,
+             name='results_mediumClassic_default'):
     import __main__
     __main__.__dict__['_display'] = display
 
     rules = ClassicGameRules(timeout)
+
+    from datetime import datetime
+    fname = 'remove/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.res'
+    import textDisplay
+    gameDisplay = textDisplay.NullGraphics()
+    rules.quiet = True
+    best_test_rate = 0.0
+    print(numGames / 2, int(numGames / 2 / 50), fname)
+    for i in range(int(numGames / 2 / 50)):
+        f = open(fname, 'a')
+        train_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, True, i, f)
+        test_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, False, i, f)
+        if best_test_rate < test_rate:
+            pacman.save_model(str(test_rate))  # save model
+            best_test_rate = test_rate
+        f.close()
+
+
+def run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, training, i, f):
     games = []
-
-    for i in range(numGames):
-        beQuiet = i < numTraining
-        if beQuiet:
-            # Suppress output and graphics
-            import textDisplay
-            gameDisplay = textDisplay.NullGraphics()
-            rules.quiet = True
-        else:
-            gameDisplay = display
-            rules.quiet = False
-        game = rules.newGame(layout, pacman, ghosts,
-                             gameDisplay, beQuiet, catchExceptions)
+    for j in range(50):
+        pacman.params['training'] = training
+        game = rules.newGame(layout, pacman, ghosts, gameDisplay, True, catchExceptions)
         game.run()
+        games.append(game)
+    wins = [game.state.isWin() for game in games]
+    winRate = wins.count(True) / float(len(wins))
+    print(('%s,%d,%.2f' % ('Train' if training else 'Test', i * 50 + j + 1, winRate)))
+    print(('%s,%d,%.2f' % ('Train' if training else 'Test', i * 50 + j + 1, winRate)), file=f)
+    return winRate
 
-        if not beQuiet:
-            games.append(game)
 
-        if record:
-            import time
-            import pickle
-            fname = ('recorded-game-%d' % (i + 1)) + \
-                    '-'.join([str(t) for t in time.localtime()[1:6]])
-            f = file(fname, 'w')
-            components = {'layout': layout, 'actions': game.moveHistory}
-            pickle.dump(components, f)
-            f.close()
+def runGame(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30,
+            name='results'):
+    import __main__
+    __main__.__dict__['_display'] = display
 
-    if (numGames - numTraining) > 0:
-        scores = [game.state.getScore() for game in games]
-        wins = [game.state.isWin() for game in games]
-        winRate = wins.count(True) / float(len(wins))
-        print(('Average Score:', sum(scores) / float(len(scores))))
-        print(('Scores:       ', ', '.join([str(score) for score in scores])))
-        print(('Win Rate:      %d/%d (%.2f)' %
-               (wins.count(True), len(wins), winRate)))
-        print(('Record:       ', ', '.join(
-            [['Loss', 'Win'][int(w)] for w in wins])))
+    rules = ClassicGameRules(timeout)
 
-    return games
+    gameDisplay = display
+    rules.quiet = False
+    pacman.params['training'] = False
+    for j in range(1):
+        game = rules.newGame(layout, pacman, ghosts, gameDisplay, True, catchExceptions)
+        game.run()
+        print('Win?', game.state.isWin())
 
 
 if __name__ == '__main__':
@@ -752,6 +758,7 @@ if __name__ == '__main__':
     """
     args = readCommand(sys.argv[1:])  # Get game components based on input
     runGames(**args)
+    # runGame(**args)
 
     # import cProfile
     # cProfile.run("runGames( **args )")
