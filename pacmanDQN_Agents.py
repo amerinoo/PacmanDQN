@@ -25,19 +25,19 @@ params = {
     'save_interval': 10000,
 
     # Training parameters
-    'train_start': 5000,  # Episodes before training starts
+    'train_start': 10000,  # Episodes before training starts
     'batch_size': 32,  # Replay memory batch size
     'mem_size': 100000,  # Replay memory size
 
     'discount': 0.95,  # Discount rate (gamma value)
-    'lr': .0002,  # Learning reate
-    # 'rms_decay': 0.99,      # RMS Prop decay (switched to adam)
-    # 'rms_eps': 1e-6,        # RMS Prop epsilon (switched to adam)
+    'lr': 0.0002,  # Learning reate
+    'rms_decay': 0.99,  # RMS Prop decay (switched to adam)
+    'rms_eps': 1e-6,  # RMS Prop epsilon (switched to adam)
 
     # Epsilon value (epsilon-greedy)
     'eps': 1.0,  # Epsilon start value
     'eps_final': 0.1,  # Epsilon end value
-    'eps_step': 10000  # Epsilon steps between start and end (linear)
+    'eps_step': 100000  # Epsilon steps between start and end (linear)
 }
 
 

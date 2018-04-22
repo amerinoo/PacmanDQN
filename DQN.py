@@ -77,15 +77,16 @@ class DQN:
         else:
             self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-        # self.optim = tf.train.RMSPropOptimizer(self.params['lr'],self.params['rms_decay'],0.0,self.params['rms_eps']).minimize(self.cost,global_step=self.global_step)
-        self.optim = tf.train.AdamOptimizer(self.params['lr']).minimize(self.cost, global_step=self.global_step)
+        self.optim = tf.train.RMSPropOptimizer(self.params['lr'], self.params['rms_decay'], 0.0,
+                                               self.params['rms_eps']).minimize(self.cost, global_step=self.global_step)
+        # self.optim = tf.train.AdamOptimizer(self.params['lr']).minimize(self.cost, global_step=self.global_step)
         self.saver = tf.train.Saver(max_to_keep=0)
 
         self.sess.run(tf.global_variables_initializer())
 
         if self.params['load_file'] is not None:
             print('Loading checkpoint...')
-            self.saver.restore(self.sess, self.params['load_file'])
+            self.saver.restore(self.sess, 'saves/' + self.params['load_file'])
 
     def train(self, bat_s, bat_a, bat_t, bat_n, bat_r):
         feed_dict = {self.x: bat_n, self.q_t: np.zeros(bat_n.shape[0]), self.actions: bat_a, self.terminals: bat_t,
