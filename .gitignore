@@ -57,5 +57,9 @@ ENV/
 .idea/
 
 # PacmanDQN
+videos/
 saves/
 logs/
+models/
+results/
+scripts/

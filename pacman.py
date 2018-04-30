@@ -566,6 +566,12 @@ def readCommand(argv):
                       help='Turns on exception handling and timeouts during games', default=False)
     parser.add_option('--timeout', dest='timeout', type='int',
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
+    parser.add_option('--load_file', dest='load_file', type='str',
+                      help=default('A CNN file to reload the agent'), default=None)
+    parser.add_option('--save_file', dest='save_file', type='str',
+                      help=default('The file name which the CNN will be saved'), default='None')
+    parser.add_option('--explore_action', dest='explore_action', type='str',
+                      help=default('Wich agent/s will be used to get the explore action'), default='random')
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -589,6 +595,11 @@ def readCommand(argv):
 
     agentOpts['width'] = layout.getLayout(options.layout).width
     agentOpts['height'] = layout.getLayout(options.layout).height
+    agentOpts['load_file'] = options.load_file
+    agentOpts['save_file'] = options.save_file
+    agentOpts['explore_action'] = options.explore_action
+    if options.save_file:
+        args['name'] = 'results_' + options.save_file
 
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
@@ -691,15 +702,14 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30,
-             name='results_mediumClassic_default'):
+def runGames(layout, pacman, ghosts, display, numGames, record, name, numTraining=0, catchExceptions=False, timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
 
     rules = ClassicGameRules(timeout)
 
     from datetime import datetime
-    fname = 'remove/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.res'
+    fname = 'results/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.res'
     import textDisplay
     gameDisplay = textDisplay.NullGraphics()
     rules.quiet = True
@@ -729,8 +739,7 @@ def run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, traini
     return winRate
 
 
-def runGame(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30,
-            name='results'):
+def runGame(layout, pacman, ghosts, display, record, numGames, name, catchExceptions=False, timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
 

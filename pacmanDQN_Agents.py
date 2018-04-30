@@ -19,8 +19,6 @@ from pacman import Directions
 
 params = {
     # Model backups
-    'load_file': None,
-    'save_file': 'mediumClassic_default',
     'save_interval': 10000,
 
     # Training parameters
@@ -49,6 +47,8 @@ class PacmanDQN(game.Agent):
         self.params = params
         self.params['width'] = args['width']
         self.params['height'] = args['height']
+        self.params['load_file'] = args['load_file']
+        self.params['save_file'] = args['save_file']
 
         # Start Tensorflow session
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
@@ -73,6 +73,8 @@ class PacmanDQN(game.Agent):
         self.replay_mem = deque()
         self.last_scores = deque()
 
+        self.get_action = getattr(self, 'get_action_' + args['explore_action'])
+
     def getMove(self, state):
         # Exploit / Explore
         if np.random.rand() > self.params['eps']:
@@ -96,13 +98,51 @@ class PacmanDQN(game.Agent):
                 move = self.get_direction(
                     a_winner[0][0])
         else:
-            # Random:
-            move = self.get_direction(np.random.randint(0, 4))
+            # Explore:
+            move = self.get_action(state)
 
         # Save last_action
         self.last_action = self.get_value(move)
 
         return move
+
+    def get_action_random(self, gameState):
+        return self.get_direction(np.random.randint(0, 4))
+
+    def get_action_reflex(self, gameState):
+        from multiAgents import ReflexAgent
+        return ReflexAgent().getAction(gameState)
+
+    def get_action_minimax(self, gameState):
+        from multiAgents import ExpectimaxAgent
+        return ExpectimaxAgent().getAction(gameState)
+
+    def get_action_random_reflex(self, gameState):
+        if np.random.rand() < 0.3:
+            return self.get_action_random(gameState)
+        else:
+            return self.get_action_reflex(gameState)
+
+    def get_action_random_minimax(self, gameState):
+        if np.random.rand() < 0.3:
+            return self.get_action_random(gameState)
+        else:
+            return self.get_action_minimax(gameState)
+
+    def get_action_reflex_minimax(self, gameState):
+        if np.random.rand() < 0.7:
+            return self.get_action_reflex(gameState)
+        else:
+            return self.get_action_minimax(gameState)
+
+    def get_action_random_reflex_minimax(self, gameState):
+        rand = np.random.rand()
+        if rand < 0.2:
+            return self.get_action_random(gameState)
+        elif rand < 0.6:
+            return self.get_action_reflex(gameState)
+        else:
+            return self.get_action_minimax(gameState)
 
     def get_value(self, direction):
         if direction == Directions.NORTH:
@@ -149,7 +189,7 @@ class PacmanDQN(game.Agent):
                 self.last_reward = 100.
             self.ep_rew += self.last_reward
 
-            # Store last experience into memory 
+            # Store last experience into memory
             experience = (self.last_state, float(self.last_reward), self.last_action, self.current_state, self.terminal)
             self.replay_mem.append(experience)
             if len(self.replay_mem) > self.params['mem_size']:
@@ -157,9 +197,9 @@ class PacmanDQN(game.Agent):
 
             # Save model
             # self.save_model(params['save_file'])
-            if self.params['training']:
-                # Train
-                self.train()
+
+            # Train
+            self.train()
 
         # Next
         self.local_cnt += 1
@@ -318,7 +358,7 @@ class PacmanDQN(game.Agent):
 
         # Create observation matrix as a combination of
         # wall, pacman, ghost, food and capsule matrices
-        # width, height = state.data.layout.width, state.data.layout.height 
+        # width, height = state.data.layout.width, state.data.layout.height
         width, height = self.params['width'], self.params['height']
         observation = np.zeros((6, height, width))
 
