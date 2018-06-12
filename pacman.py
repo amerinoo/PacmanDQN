@@ -572,6 +572,31 @@ def readCommand(argv):
                       help=default('The file name which the CNN will be saved'), default='None')
     parser.add_option('--explore_action', dest='explore_action', type='str',
                       help=default('Wich agent/s will be used to get the explore action'), default='random')
+    parser.add_option('--level', dest='level', type='int',
+                      help=default('Level'), default=2)
+
+    parser.add_option('--train_start', dest='train_start', type='int',
+                      help=default('Episodes before training starts'), default=10000)
+    parser.add_option('--batch_size', dest='batch_size', type='int',
+                      help=default('Replay memory batch size'), default=32)
+    parser.add_option('--mem_size', dest='mem_size', type='int',
+                      help=default('Replay memory size'), default=100000)
+
+    parser.add_option('--discount', dest='discount', type='float',
+                      help=default('Discount rate (gamma value)'), default=0.95)
+    parser.add_option('--lr', dest='lr', type='float',
+                      help=default('Learning rate'), default=0.0002)
+    parser.add_option('--rms_decay', dest='rms_decay', type='float',
+                      help=default('RMS Prop decay (switched to adam)'), default=0.99)
+    parser.add_option('--rms_eps', dest='rms_eps', type='float',
+                      help=default('RMS Prop epsilon (switched to adam)'), default=1e-6)
+
+    parser.add_option('--eps', dest='eps', type='float',
+                      help=default('Epsilon start value'), default=1.0)
+    parser.add_option('--eps_final', dest='eps_final', type='float',
+                      help=default('Epsilon end value'), default=0.1)
+    parser.add_option('--eps_step', dest='eps_step', type='int',
+                      help=default('Epsilon steps between start and end (linear)'), default=100000)
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -595,9 +620,24 @@ def readCommand(argv):
 
     agentOpts['width'] = layout.getLayout(options.layout).width
     agentOpts['height'] = layout.getLayout(options.layout).height
-    agentOpts['load_file'] = options.load_file
+    if options.gameToReplay is not None:
+        agentOpts['load_file'] = options.gameToReplay
+    if agentOpts['load_file'] is None:
+        agentOpts['load_file'] = options.load_file
     agentOpts['save_file'] = options.save_file
     agentOpts['explore_action'] = options.explore_action
+
+    agentOpts['train_start'] = options.train_start
+    agentOpts['batch_size'] = options.batch_size
+    agentOpts['mem_size'] = options.mem_size
+    agentOpts['discount'] = options.discount
+    agentOpts['lr'] = options.lr
+    agentOpts['rms_decay'] = options.rms_decay
+    agentOpts['rms_eps'] = options.rms_eps
+    agentOpts['eps'] = options.eps
+    agentOpts['eps_final'] = options.eps_final
+    agentOpts['eps_step'] = options.eps_step
+
     if options.save_file:
         args['name'] = 'results_' + options.save_file
 
@@ -635,19 +675,11 @@ def readCommand(argv):
     args['record'] = options.record
     args['catchExceptions'] = options.catchExceptions
     args['timeout'] = options.timeout
+    args['level'] = options.level
 
-    # Special case: recorded games don't use the runGames method or args
-    # structure
     if options.gameToReplay is not None:
-        print(('Replaying recorded game %s.' % options.gameToReplay))
-        import pickle
-        f = open(options.gameToReplay)
-        try:
-            recorded = pickle.load(f)
-        finally:
-            f.close()
-        recorded['display'] = args['display']
-        replayGame(**recorded)
+        print(('Running game %s.' % options.gameToReplay))
+        runGame(**args)
         sys.exit(0)
 
     return args
@@ -702,7 +734,8 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, name, numTraining=0, catchExceptions=False, timeout=30):
+def runGames(layout, pacman, ghosts, display, numGames, record, name, level, numTraining=0, catchExceptions=False,
+             timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -715,7 +748,13 @@ def runGames(layout, pacman, ghosts, display, numGames, record, name, numTrainin
     rules.quiet = True
     best_test_rate = 0.0
     print(numGames / 2, int(numGames / 2 / 50), fname)
+    agent = pacman.params['explore_action']
+    print(agent, level)
+    if level is 1 or level is 3:
+        print('Selected agent is', pacman.set_agent(agent, level))
     for i in range(int(numGames / 2 / 50)):
+        if level is 2:
+            print('Selected agent is', pacman.set_agent(agent, level))
         f = open(fname, 'a')
         train_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, True, i, f)
         test_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, False, i, f)
@@ -723,6 +762,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, name, numTrainin
             pacman.save_model(str(test_rate))  # save model
             best_test_rate = test_rate
         f.close()
+    print('GGA SOLVED %.2f', best_test_rate)
 
 
 def run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, training, i, f):
@@ -739,7 +779,7 @@ def run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, traini
     return winRate
 
 
-def runGame(layout, pacman, ghosts, display, record, numGames, name, catchExceptions=False, timeout=30):
+def runGame(layout, pacman, ghosts, display, record, numGames, name, level, catchExceptions=False, timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -767,7 +807,6 @@ if __name__ == '__main__':
     """
     args = readCommand(sys.argv[1:])  # Get game components based on input
     runGames(**args)
-    # runGame(**args)
 
     # import cProfile
     # cProfile.run("runGames( **args )")

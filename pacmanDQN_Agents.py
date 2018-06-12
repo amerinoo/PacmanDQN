@@ -19,22 +19,7 @@ from pacman import Directions
 
 params = {
     # Model backups
-    'save_interval': 10000,
-
-    # Training parameters
-    'train_start': 10000,  # Episodes before training starts
-    'batch_size': 32,  # Replay memory batch size
-    'mem_size': 100000,  # Replay memory size
-
-    'discount': 0.95,  # Discount rate (gamma value)
-    'lr': 0.0002,  # Learning reate
-    'rms_decay': 0.99,  # RMS Prop decay (switched to adam)
-    'rms_eps': 1e-6,  # RMS Prop epsilon (switched to adam)
-
-    # Epsilon value (epsilon-greedy)
-    'eps': 1.0,  # Epsilon start value
-    'eps_final': 0.1,  # Epsilon end value
-    'eps_step': 100000  # Epsilon steps between start and end (linear)
+    'save_interval': 10000
 }
 
 
@@ -49,10 +34,24 @@ class PacmanDQN(game.Agent):
         self.params['height'] = args['height']
         self.params['load_file'] = args['load_file']
         self.params['save_file'] = args['save_file']
+        self.params['explore_action'] = args['explore_action']
 
+        self.params['train_start'] = args['train_start']
+        self.params['batch_size'] = args['batch_size']
+        self.params['mem_size'] = args['mem_size']
+        self.params['discount'] = args['discount']
+        self.params['lr'] = args['lr']
+        self.params['rms_decay'] = args['rms_decay']
+        self.params['rms_eps'] = args['rms_eps']
+        self.params['eps'] = args['eps']
+        self.params['eps_final'] = args['eps_final']
+        self.params['eps_step'] = args['eps_step']
+
+        self.get_action = getattr(self, 'get_action_' + self.params['explore_action'])
         # Start Tensorflow session
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
-        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, intra_op_parallelism_threads=1,
+                                                     inter_op_parallelism_threads=1))
         self.qnet = DQN(self.params)
 
         # time started
@@ -73,7 +72,58 @@ class PacmanDQN(game.Agent):
         self.replay_mem = deque()
         self.last_scores = deque()
 
-        self.get_action = getattr(self, 'get_action_' + args['explore_action'])
+        from multiAgents import ReflexAgent, MinimaxAgent
+        self.reflex = ReflexAgent()
+        self.minimax = MinimaxAgent()
+        self.minimax2 = MinimaxAgent(depth='2')
+
+    def set_agent(self, agent, level):
+        if level == 3:
+            explore_action = agent
+        else:
+            explore_action = getattr(self, 'get_agent_' + agent)()
+
+        self.get_action = getattr(self, 'get_action_' + explore_action)
+        return explore_action
+
+    def get_agent_random(self):
+        return 'random'
+
+    def get_agent_reflex(self):
+        return 'reflex'
+
+    def get_agent_minimax(self):
+        return 'minimax'
+
+    def get_agent_minimax2(self):
+        return 'minimax2'
+
+    def get_agent_random_reflex(self):
+        if np.random.rand() < 0.3:
+            return self.get_agent_random()
+        else:
+            return self.get_agent_reflex()
+
+    def get_agent_random_minimax(self):
+        if np.random.rand() < 0.3:
+            return self.get_agent_random()
+        else:
+            return self.get_agent_minimax()
+
+    def get_agent_reflex_minimax(self):
+        if np.random.rand() < 0.7:
+            return self.get_agent_reflex()
+        else:
+            return self.get_agent_minimax()
+
+    def get_agent_random_reflex_minimax(self):
+        rand = np.random.rand()
+        if rand < 0.2:
+            return self.get_agent_random()
+        elif rand < 0.6:
+            return self.get_agent_reflex()
+        else:
+            return self.get_agent_minimax()
 
     def getMove(self, state):
         # Exploit / Explore
@@ -110,12 +160,13 @@ class PacmanDQN(game.Agent):
         return self.get_direction(np.random.randint(0, 4))
 
     def get_action_reflex(self, gameState):
-        from multiAgents import ReflexAgent
-        return ReflexAgent().getAction(gameState)
+        return self.reflex.getAction(gameState)
 
     def get_action_minimax(self, gameState):
-        from multiAgents import ExpectimaxAgent
-        return ExpectimaxAgent().getAction(gameState)
+        return self.minimax.getAction(gameState)
+
+    def get_action_minimax2(self, gameState):
+        return self.minimax2.getAction(gameState)
 
     def get_action_random_reflex(self, gameState):
         if np.random.rand() < 0.3:
