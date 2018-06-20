@@ -52,3 +52,14 @@ target/
 # virtualenv
 venv/
 ENV/
+
+# Pycharm
+.idea/
+
+# PacmanDQN
+videos/
+saves/
+logs/
+models/
+results/
+scripts/
