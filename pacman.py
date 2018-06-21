@@ -622,7 +622,7 @@ def readCommand(argv):
     agentOpts['height'] = layout.getLayout(options.layout).height
     if options.gameToReplay is not None:
         agentOpts['load_file'] = options.gameToReplay
-    if agentOpts['load_file'] is None:
+    if 'load_file' not in agentOpts.keys():
         agentOpts['load_file'] = options.load_file
     agentOpts['save_file'] = options.save_file
     agentOpts['explore_action'] = options.explore_action
@@ -762,7 +762,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, name, level, num
             pacman.save_model(str(test_rate))  # save model
             best_test_rate = test_rate
         f.close()
-    print('GGA SOLVED %.2f', best_test_rate)
+    print('GGA SOLVED {}'.format(best_test_rate))
 
 
 def run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, training, i, f):
