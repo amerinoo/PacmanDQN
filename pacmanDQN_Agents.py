@@ -77,6 +77,11 @@ class PacmanDQN(game.Agent):
         self.minimax = MinimaxAgent()
         self.minimax2 = MinimaxAgent(depth='2')
 
+        self.log_filename = './logs/' + str(self.general_record_time) + '_' + params['save_file'] + '-l-' + str(
+            self.params['width']) + '-m-' + str(self.params['height']) + '.csv'
+        log_file = open(self.log_filename, 'a')
+        log_file.write("#,steps,steps_t,t,r,e,Q,won,training\n")
+
     def set_agent(self, agent, level):
         if level == 3:
             explore_action = agent
@@ -256,8 +261,7 @@ class PacmanDQN(game.Agent):
         self.local_cnt += 1
         self.frame += 1
         if self.params['training']:
-            self.params['eps'] = max(self.params['eps_final'],
-                                     1.00 - float(self.cnt) / float(self.params['eps_step']))
+            self.params['eps'] = max(self.params['eps_final'], 1.00 - float(self.cnt) / float(self.params['eps_step']))
         else:
             self.params['eps'] = 0.0
 
@@ -277,17 +281,18 @@ class PacmanDQN(game.Agent):
         self.observation_step(state)
 
         # Print stats
-        log_file = open('./logs/' + str(self.general_record_time) + '_' + params['save_file'] + '-l-' + str(
-            self.params['width']) + '-m-' + str(
-            self.params['height']) + '.log', 'a')
-        log_file.write("# %4d | steps: %5d | steps_t: %5d | t: %4f | r: %12f | e: %10f " %
-                       (self.numeps, self.local_cnt, self.cnt, time.time() - self.s, self.ep_rew, self.params['eps']))
-        log_file.write("| Q: %10f | won: %r | training: %r\n" % (
-            max(self.Q_global, default=float('nan')), self.won, self.params['training']))
+        log_file = open(self.log_filename, 'a')
+        # log_file.write("# %4d | steps: %5d | steps_t: %5d | t: %4f | r: %12f | e: %10f " %
+        #                (self.numeps, self.local_cnt, self.cnt, time.time() - self.s, self.ep_rew, self.params['eps']))
+        # log_file.write("| Q: %10f | won: %r | training: %r\n" % (
+        #     max(self.Q_global, default=float('nan')), self.won, self.params['training']))
+        log_file.write("%4d,%5d,%5d,%4f,%12f,%10f,%10f,%r,%r\n" %
+                       (self.numeps, self.local_cnt, self.cnt, time.time() - self.s, self.ep_rew, self.params['eps'],
+                        max(self.Q_global, default=float('nan')), self.won, self.params['training']))
 
     def train(self):
         # Train
-        if (self.local_cnt > self.params['train_start']):
+        if self.local_cnt > self.params['train_start']:
             batch = random.sample(self.replay_mem, self.params['batch_size'])
             batch_s = []  # States (s)
             batch_r = []  # Rewards (r)

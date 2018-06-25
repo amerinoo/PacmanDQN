@@ -529,11 +529,11 @@ def readCommand(argv):
     parser = OptionParser(usageStr)
 
     parser.add_option('-n', '--numGames', dest='numGames', type='int',
-                      help=default('the number of GAMES to play'), metavar='GAMES', default=6000)
+                      help=default('the number of GAMES to play'), metavar='GAMES', default=100)
     parser.add_option('-l', '--layout', dest='layout',
                       help=default(
                           'the LAYOUT_FILE from which to load the map layout'),
-                      metavar='LAYOUT_FILE', default='mediumClassic')
+                      metavar='LAYOUT_FILE', default='mediumClassic2')
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default(
                           'the agent TYPE in the pacmanAgents module to use'),
@@ -597,6 +597,8 @@ def readCommand(argv):
                       help=default('Epsilon end value'), default=0.1)
     parser.add_option('--eps_step', dest='eps_step', type='int',
                       help=default('Epsilon steps between start and end (linear)'), default=100000)
+    parser.add_option('--minimax_depth', dest='minimax_depth', type='str',
+                      help=default('minimax_depth'), default='1')
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -734,7 +736,7 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, name, level, numTraining=0, catchExceptions=False,
+def runGames2(layout, pacman, ghosts, display, numGames, record, name, level, numTraining=0, catchExceptions=False,
              timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
@@ -746,7 +748,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, name, level, num
     import textDisplay
     gameDisplay = textDisplay.NullGraphics()
     rules.quiet = True
-    best_test_rate = 0.0
+    best_test_rate = 1.0
     print(numGames / 2, int(numGames / 2 / 50), fname)
     agent = pacman.params['explore_action']
     print(agent, level)
@@ -765,18 +767,56 @@ def runGames(layout, pacman, ghosts, display, numGames, record, name, level, num
     print('GGA SOLVED {}'.format(best_test_rate))
 
 
+def runGames(layout, pacman, ghosts, display, numGames, record, name, level, numTraining=0, catchExceptions=False,
+              timeout=30):
+    import __main__
+    __main__.__dict__['_display'] = display
+
+    rules = ClassicGameRules(timeout)
+
+    from datetime import datetime
+    fname = 'results/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.res'
+    import textDisplay
+    gameDisplay = textDisplay.NullGraphics()
+    rules.quiet = True
+    best_test_rate = 1.0
+    rates = []
+    print(int(numGames / 50), fname)
+    agent = pacman.params['explore_action']
+    print(agent, level)
+    if level is 1 or level is 3:
+        print('Selected agent is', pacman.set_agent(agent, level))
+    for i in range(int(numGames / 50)):
+        if level is 2:
+            print('Selected agent is', pacman.set_agent(agent, level))
+        f = open(fname, 'a')
+        train_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, True, i, f)
+        # test_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, False, i, f)
+        rates.append(train_rate)
+        if best_test_rate < train_rate:
+            pacman.save_model(str(train_rate))  # save model
+            best_test_rate = train_rate
+        f.close()
+    print('GGA SOLVED {:0.4f}'.format(sum(rates) / float(len(rates))))
+
+
 def run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, training, i, f):
     games = []
+    totalFood = 1.0
     for j in range(50):
         pacman.params['training'] = training
         game = rules.newGame(layout, pacman, ghosts, gameDisplay, True, catchExceptions)
+        totalFood = game.state.getNumFood()
         game.run()
         games.append(game)
     wins = [game.state.isWin() for game in games]
     winRate = wins.count(True) / float(len(wins))
-    print(('%s,%d,%.2f' % ('Train' if training else 'Test', i * 50 + j + 1, winRate)))
-    print(('%s,%d,%.2f' % ('Train' if training else 'Test', i * 50 + j + 1, winRate)), file=f)
-    return winRate
+    food = [game.state.getNumFood() for game in games]
+    foodRate = sum(food) / float(len(food)) / totalFood
+
+    print(('%s,%d,%.2f,%.2f' % ('Train' if training else 'Test', i * 50 + j + 1, winRate, foodRate)))
+    print(('%s,%d,%.2f,%.2f,' % ('Train' if training else 'Test', i * 50 + j + 1, winRate, foodRate)), file=f)
+    return foodRate
 
 
 def runGame(layout, pacman, ghosts, display, record, numGames, name, level, catchExceptions=False, timeout=30):
@@ -790,8 +830,9 @@ def runGame(layout, pacman, ghosts, display, record, numGames, name, level, catc
     pacman.params['training'] = False
     for j in range(1):
         game = rules.newGame(layout, pacman, ghosts, gameDisplay, True, catchExceptions)
+        print('Start Food:', game.state.getNumFood())
         game.run()
-        print('Win?', game.state.isWin())
+        print('Win?', game.state.isWin(), game.state.getNumFood())
 
 
 if __name__ == '__main__':
@@ -806,6 +847,7 @@ if __name__ == '__main__':
     > python pacman.py --help
     """
     args = readCommand(sys.argv[1:])  # Get game components based on input
+    # runGame(**args)
     runGames(**args)
 
     # import cProfile
