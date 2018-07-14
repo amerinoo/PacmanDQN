@@ -615,18 +615,28 @@ def readCommand(argv):
         raise Exception("The layout " + options.layout + " cannot be found")
 
     # Choose a Pacman agent
-    noKeyboard = options.gameToReplay == None and (
-        options.textGraphics or options.quietGraphics)
+    noKeyboard = options.gameToReplay == None and (options.textGraphics or options.quietGraphics)
     pacmanType = loadAgent(options.pacman, noKeyboard)
     agentOpts = parseAgentArgs(options.agentArgs)
 
     agentOpts['width'] = layout.getLayout(options.layout).width
     agentOpts['height'] = layout.getLayout(options.layout).height
-    if options.gameToReplay is not None:
-        agentOpts['load_file'] = options.gameToReplay
-    if 'load_file' not in agentOpts.keys():
-        agentOpts['load_file'] = options.load_file
-    agentOpts['save_file'] = options.save_file
+
+    meta_load = os.environ["GGA_EPI_IN"] if "GGA_EPI_IN" in os.environ else ""
+    print('GGA_EPI_IN {}'.format(meta_load))
+    if meta_load != "" and os.path.isfile(meta_load):
+        print('meta load: %s' % meta_load)
+        agentOpts['load_file'] = meta_load
+    elif options.gameToReplay is not None:
+        agentOpts['load_file'] = 'saves/' + options.gameToReplay
+    elif 'load_file' not in agentOpts.keys():
+        agentOpts['load_file'] = 'saves/' + options.load_file
+
+    individualID = os.environ['GGA_INDIVIDUAL_ID'] if "GGA_INDIVIDUAL_ID" in os.environ else 'None'
+    parent1 = os.environ['GGA_PARENT_1'] if "GGA_PARENT_1" in os.environ else 'None'
+    parent2 = os.environ['GGA_PARENT_2'] if "GGA_PARENT_2" in os.environ else 'None'
+    print('individualID {}, parent1 {}, parent2 {}'.format(individualID, parent1, parent2))
+    agentOpts['save_file'] = options.save_file if options.save_file is not 'None' else str(individualID)
     agentOpts['explore_action'] = options.explore_action
 
     agentOpts['train_start'] = options.train_start
@@ -640,8 +650,10 @@ def readCommand(argv):
     agentOpts['eps_final'] = options.eps_final
     agentOpts['eps_step'] = options.eps_step
 
+    from datetime import datetime
+    agentOpts['record_time'] = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     if options.save_file:
-        args['name'] = 'results_' + options.save_file
+        args['name'] = options.save_file
 
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
@@ -702,10 +714,10 @@ def loadAgent(pacman, nographics):
         moduleNames = [f for f in os.listdir(
             moduleDir) if f.endswith('gents.py')]
         for modulename in moduleNames:
-            try:
-                module = __import__(modulename[:-3])
-            except ImportError:
-                continue
+            # try:
+            module = __import__(modulename[:-3])
+            # except ImportError:
+            #     continue
             if pacman in dir(module):
                 if nographics and modulename == 'keyboardAgents.py':
                     raise Exception(
@@ -737,14 +749,14 @@ def replayGame(layout, actions, display):
 
 
 def runGames2(layout, pacman, ghosts, display, numGames, record, name, level, numTraining=0, catchExceptions=False,
-             timeout=30):
+              timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
 
     rules = ClassicGameRules(timeout)
 
-    from datetime import datetime
-    fname = 'results/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.res'
+    datetime_now = pacman.params['record_time']
+    fname = 'results/' + name + '_' + datetime_now + '.result'
     import textDisplay
     gameDisplay = textDisplay.NullGraphics()
     rules.quiet = True
@@ -768,14 +780,14 @@ def runGames2(layout, pacman, ghosts, display, numGames, record, name, level, nu
 
 
 def runGames(layout, pacman, ghosts, display, numGames, record, name, level, numTraining=0, catchExceptions=False,
-              timeout=30):
+             timeout=30):
     import __main__
     __main__.__dict__['_display'] = display
 
     rules = ClassicGameRules(timeout)
 
     from datetime import datetime
-    fname = 'results/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.res'
+    fname = 'results/' + name + '_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.result'
     import textDisplay
     gameDisplay = textDisplay.NullGraphics()
     rules.quiet = True
@@ -794,9 +806,13 @@ def runGames(layout, pacman, ghosts, display, numGames, record, name, level, num
         # test_rate = run_test(layout, pacman, rules, ghosts, gameDisplay, catchExceptions, False, i, f)
         rates.append(train_rate)
         if best_test_rate < train_rate:
-            pacman.save_model(str(train_rate))  # save model
+            # pacman.save_model(str(train_rate))  # save model
             best_test_rate = train_rate
         f.close()
+    meta_save = os.environ['GGA_EPI_OUT'] if "GGA_EPI_OUT" in os.environ else ""
+    if meta_save != '':
+        print('meta save: %s' % meta_save)
+        pacman.save_model(meta_save)
     print('GGA SOLVED {:0.4f}'.format(sum(rates) / float(len(rates))))
 
 

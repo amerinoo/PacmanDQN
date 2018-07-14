@@ -35,7 +35,6 @@ class PacmanDQN(game.Agent):
         self.params['load_file'] = args['load_file']
         self.params['save_file'] = args['save_file']
         self.params['explore_action'] = args['explore_action']
-
         self.params['train_start'] = args['train_start']
         self.params['batch_size'] = args['batch_size']
         self.params['mem_size'] = args['mem_size']
@@ -46,6 +45,8 @@ class PacmanDQN(game.Agent):
         self.params['eps'] = args['eps']
         self.params['eps_final'] = args['eps_final']
         self.params['eps_step'] = args['eps_step']
+        # time started
+        self.record_time = args['record_time']
 
         self.get_action = getattr(self, 'get_action_' + self.params['explore_action'])
         # Start Tensorflow session
@@ -54,8 +55,6 @@ class PacmanDQN(game.Agent):
                                                      inter_op_parallelism_threads=1))
         self.qnet = DQN(self.params)
 
-        # time started
-        self.general_record_time = time.strftime("%d_%b_%Y_%H_%M_%S", time.localtime())
         # Q and cost
         self.Q_global = []
         self.cost_disp = 0
@@ -77,8 +76,8 @@ class PacmanDQN(game.Agent):
         self.minimax = MinimaxAgent()
         self.minimax2 = MinimaxAgent(depth='2')
 
-        self.log_filename = './logs/' + str(self.general_record_time) + '_' + params['save_file'] + '-l-' + str(
-            self.params['width']) + '-m-' + str(self.params['height']) + '.csv'
+        self.log_filename = 'logs/' + params['save_file'] + '_' + str(self.record_time) + '-l-' + str(
+            self.params['width']) + '-m-' + str(self.params['height']) + '.log'
         log_file = open(self.log_filename, 'a')
         log_file.write("#,steps,steps_t,t,r,e,Q,won,training\n")
 
@@ -282,10 +281,6 @@ class PacmanDQN(game.Agent):
 
         # Print stats
         log_file = open(self.log_filename, 'a')
-        # log_file.write("# %4d | steps: %5d | steps_t: %5d | t: %4f | r: %12f | e: %10f " %
-        #                (self.numeps, self.local_cnt, self.cnt, time.time() - self.s, self.ep_rew, self.params['eps']))
-        # log_file.write("| Q: %10f | won: %r | training: %r\n" % (
-        #     max(self.Q_global, default=float('nan')), self.won, self.params['training']))
         log_file.write("%4d,%5d,%5d,%4f,%12f,%10f,%10f,%r,%r\n" %
                        (self.numeps, self.local_cnt, self.cnt, time.time() - self.s, self.ep_rew, self.params['eps'],
                         max(self.Q_global, default=float('nan')), self.won, self.params['training']))
@@ -466,6 +461,8 @@ class PacmanDQN(game.Agent):
 
     def save_model(self, where):
         if where:
-            self.qnet.save_ckpt(
-                'saves/model-' + params['save_file'] + '_' + where + "_" + str(self.cnt) + '_' + str(self.numeps))
+            self.qnet.save_ckpt(where + "_" + str(self.cnt) + '_' + str(self.numeps))
+            # self.qnet.save_ckpt(
+            #     'saves/model_' + params['save_file'] + '_' + where + "_" + str(self.cnt) + '_' + str(self.numeps))
+            #
             print('Model saved')
