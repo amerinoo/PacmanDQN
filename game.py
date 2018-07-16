@@ -651,6 +651,7 @@ class Game:
         agentIndex = self.startingIndex
         numAgents = len(self.agents)
 
+        tout = time.time()
         while not self.gameOver:
             # Fetch the next agent
             agent = self.agents[agentIndex]
@@ -764,6 +765,8 @@ class Game:
 
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
+            if(time.time() - tout > 30):
+                self._agentCrash(0)
 
         # inform a learning agent of the game result
         for agentIndex, agent in enumerate(self.agents):
