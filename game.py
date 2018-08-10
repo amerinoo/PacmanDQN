@@ -765,7 +765,7 @@ class Game:
 
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
-            if(time.time() - tout > 30):
+            if(time.time() - tout > 60):
                 self._agentCrash(0)
 
         # inform a learning agent of the game result

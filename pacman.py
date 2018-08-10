@@ -533,7 +533,7 @@ def readCommand(argv):
     parser.add_option('-l', '--layout', dest='layout',
                       help=default(
                           'the LAYOUT_FILE from which to load the map layout'),
-                      metavar='LAYOUT_FILE', default='mediumClassic2')
+                      metavar='LAYOUT_FILE', default='mediumClassic4')
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default(
                           'the agent TYPE in the pacmanAgents module to use'),
@@ -569,7 +569,7 @@ def readCommand(argv):
     parser.add_option('--load_file', dest='load_file', type='str',
                       help=default('A CNN file to reload the agent'), default=None)
     parser.add_option('--save_file', dest='save_file', type='str',
-                      help=default('The file name which the CNN will be saved'), default='None')
+                      help=default('The file name which the CNN will be saved'), default=None)
     parser.add_option('--explore_action', dest='explore_action', type='str',
                       help=default('Wich agent/s will be used to get the explore action'), default='random')
     parser.add_option('--level', dest='level', type='int',
@@ -623,20 +623,23 @@ def readCommand(argv):
     agentOpts['height'] = layout.getLayout(options.layout).height
 
     meta_load = os.environ["GGA_EPI_IN"] if "GGA_EPI_IN" in os.environ else ""
-    print('GGA_EPI_IN {}'.format(meta_load))
     if meta_load != "" and os.path.isfile(meta_load):
         print('meta load: %s' % meta_load)
         agentOpts['load_file'] = meta_load
     elif options.gameToReplay is not None:
         agentOpts['load_file'] = 'saves/' + options.gameToReplay
-    elif 'load_file' not in agentOpts.keys():
+    elif 'load_file' not in agentOpts.keys() and options.load_file is not None:
         agentOpts['load_file'] = 'saves/' + options.load_file
+    else:
+        agentOpts['load_file'] = None
+
 
     individualID = os.environ['GGA_INDIVIDUAL_ID'] if "GGA_INDIVIDUAL_ID" in os.environ else 'None'
     parent1 = os.environ['GGA_PARENT_1'] if "GGA_PARENT_1" in os.environ else 'None'
     parent2 = os.environ['GGA_PARENT_2'] if "GGA_PARENT_2" in os.environ else 'None'
     print('individualID {}, parent1 {}, parent2 {}'.format(individualID, parent1, parent2))
-    agentOpts['save_file'] = options.save_file if options.save_file is not 'None' else str(individualID)
+    agentOpts['save_file'] = options.save_file if options.save_file else str(individualID)
+    args['name'] = agentOpts['save_file']
     agentOpts['explore_action'] = options.explore_action
 
     agentOpts['train_start'] = options.train_start
@@ -652,9 +655,6 @@ def readCommand(argv):
 
     from datetime import datetime
     agentOpts['record_time'] = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    if options.save_file:
-        args['name'] = options.save_file
-
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts:
