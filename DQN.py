@@ -70,12 +70,7 @@ class DQN:
         self.yj = tf.add(self.rewards, tf.multiply(1.0 - self.terminals, tf.multiply(self.discount, self.q_t)))
         self.Q_pred = tf.reduce_sum(tf.multiply(self.y, self.actions), reduction_indices=1)
         self.cost = tf.reduce_sum(tf.pow(tf.subtract(self.yj, self.Q_pred), 2))
-
-        if self.params['load_file'] is not None:
-            self.global_step = tf.Variable(int(self.params['load_file'].split('_')[-1]), name='global_step',
-                                           trainable=False)
-        else:
-            self.global_step = tf.Variable(0, name='global_step', trainable=False)
+        self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
         self.optim = tf.train.RMSPropOptimizer(self.params['lr'], self.params['rms_decay'], 0.0,
                                                self.params['rms_eps']).minimize(self.cost, global_step=self.global_step)

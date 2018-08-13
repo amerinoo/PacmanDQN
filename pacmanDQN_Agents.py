@@ -461,7 +461,7 @@ class PacmanDQN(game.Agent):
 
     def save_model(self, where):
         if where:
-            self.qnet.save_ckpt(where + "_" + str(self.cnt) + '_' + str(self.numeps))
+            self.qnet.save_ckpt(where)
             # self.qnet.save_ckpt(
             #     'saves/model_' + params['save_file'] + '_' + where + "_" + str(self.cnt) + '_' + str(self.numeps))
             #
