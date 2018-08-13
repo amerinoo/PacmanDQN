@@ -40,6 +40,7 @@ class PacmanDQN(game.Agent):
         self.params['mem_size'] = args['mem_size']
         self.params['discount'] = args['discount']
         self.params['lr'] = args['lr']
+        self.params['lr_cyclic'] = args['lr_cyclic']
         self.params['rms_decay'] = args['rms_decay']
         self.params['rms_eps'] = args['rms_eps']
         self.params['eps'] = args['eps']

@@ -586,6 +586,8 @@ def readCommand(argv):
                       help=default('Discount rate (gamma value)'), default=0.95)
     parser.add_option('--lr', dest='lr', type='float',
                       help=default('Learning rate'), default=0.0002)
+    parser.add_option('--lr_cyclic', dest='lr_cyclic', type='float',
+                      help=default('Learning rate cyclic modifier'), default=0)
     parser.add_option('--rms_decay', dest='rms_decay', type='float',
                       help=default('RMS Prop decay (switched to adam)'), default=0.99)
     parser.add_option('--rms_eps', dest='rms_eps', type='float',
@@ -633,7 +635,6 @@ def readCommand(argv):
     else:
         agentOpts['load_file'] = None
 
-
     individualID = os.environ['GGA_INDIVIDUAL_ID'] if "GGA_INDIVIDUAL_ID" in os.environ else 'None'
     parent1 = os.environ['GGA_PARENT_1'] if "GGA_PARENT_1" in os.environ else 'None'
     parent2 = os.environ['GGA_PARENT_2'] if "GGA_PARENT_2" in os.environ else 'None'
@@ -647,6 +648,7 @@ def readCommand(argv):
     agentOpts['mem_size'] = options.mem_size
     agentOpts['discount'] = options.discount
     agentOpts['lr'] = options.lr
+    agentOpts['lr_cyclic'] = options.lr_cyclic
     agentOpts['rms_decay'] = options.rms_decay
     agentOpts['rms_eps'] = options.rms_eps
     agentOpts['eps'] = options.eps

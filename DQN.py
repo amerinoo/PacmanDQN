@@ -71,10 +71,8 @@ class DQN:
         self.Q_pred = tf.reduce_sum(tf.multiply(self.y, self.actions), reduction_indices=1)
         self.cost = tf.reduce_sum(tf.pow(tf.subtract(self.yj, self.Q_pred), 2))
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
+        self.lr = tf.Variable(params['lr'], name='lr', trainable=False)
 
-        self.optim = tf.train.RMSPropOptimizer(self.params['lr'], self.params['rms_decay'], 0.0,
-                                               self.params['rms_eps']).minimize(self.cost, global_step=self.global_step)
-        # self.optim = tf.train.AdamOptimizer(self.params['lr']).minimize(self.cost, global_step=self.global_step)
         self.saver = tf.train.Saver(max_to_keep=0)
 
         self.sess.run(tf.global_variables_initializer())
@@ -82,6 +80,12 @@ class DQN:
         if self.params['load_file'] is not None:
             print('Loading checkpoint ' + self.params['load_file'] + ' ...')
             self.saver.restore(self.sess, self.params['load_file'])
+
+        increment_global_step_op = tf.assign(self.lr, self.lr + self.lr * 0.1 * params['lr_cyclic'])
+        self.sess.run(increment_global_step_op)
+        self.optim = tf.train.RMSPropOptimizer(self.lr, self.params['rms_decay'], 0.0,
+                                               self.params['rms_eps']).minimize(self.cost, global_step=self.global_step)
+        # self.optim = tf.train.AdamOptimizer(self.params['lr']).minimize(self.cost, global_step=self.global_step)
 
     def train(self, bat_s, bat_a, bat_t, bat_n, bat_r):
         feed_dict = {self.x: bat_n, self.q_t: np.zeros(bat_n.shape[0]), self.actions: bat_a, self.terminals: bat_t,
